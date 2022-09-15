@@ -1,77 +1,61 @@
-// Promise에 기반한 Thunk를 만들어주는 함수입니다.
-export const createPromiseThunk = (type, promiseCreator) => {
-    const [SUCCESS, ERROR] = [`${type}_SUCCESS`, `${type}_ERROR`];
+import * as postsAPI from '../api/posts'; // api/posts 안의 함수 모두 불러오기
+import { createPromiseThunk, reducerUtils } from '../lib/asyncUtils';
 
-    // 이 함수는 promiseCreator가 단 하나의 파라미터만 받는다는 전제하에 작성되었습니다.
-    // 만약 여러 종류의 파라미터를 전달해야하는 상황에서는 객체 타입의 파라미터를 받아오도록 하면 됩니다.
-    // 예: writeComment({ postId: 1, text: '댓글 내용' });
-    return param => async dispatch => {
-        // 요청 시작
-        dispatch({ type, param });
-        try {
-            // 결과물의 이름을 payload 라는 이름으로 통일시킵니다.
-            const payload = await promiseCreator(param);
-            dispatch({ type: SUCCESS, payload }); // 성공
-        } catch (e) {
-            dispatch({ type: ERROR, payload: e, error: true }); // 실패
-        }
-    };
+/* 액션 타입 */
+
+// 포스트 여러개 조회하기
+const GET_POSTS = 'GET_POSTS'; // 요청 시작
+const GET_POSTS_SUCCESS = 'GET_POSTS_SUCCESS'; // 요청 성공
+const GET_POSTS_ERROR = 'GET_POSTS_ERROR'; // 요청 실패
+
+// 포스트 하나 조회하기
+const GET_POST = 'GET_POST';
+const GET_POST_SUCCESS = 'GET_POST_SUCCESS';
+const GET_POST_ERROR = 'GET_POST_ERROR';
+
+// 아주 쉽게 thunk 함수를 만들 수 있게 되었습니다.
+export const getPosts = createPromiseThunk(GET_POSTS, postsAPI.getPosts);
+export const getPost = createPromiseThunk(GET_POST, postsAPI.getPostById);
+
+// initialState 쪽도 반복되는 코드를 initial() 함수를 사용해서 리팩토링 했습니다.
+const initialState = {
+    posts: reducerUtils.initial(),
+    post: reducerUtils.initial()
 };
 
-
-// 리듀서에서 사용 할 수 있는 여러 유틸 함수들입니다.
-export const reducerUtils = {
-    // 초기 상태. 초기 data 값은 기본적으로 null 이지만
-    // 바꿀 수도 있습니다.
-    initial: (initialData = null) => ({
-        loading: false,
-        data: initialData,
-        error: null
-    }),
-    // 로딩중 상태. prevState의 경우엔 기본값은 null 이지만
-    // 따로 값을 지정하면 null 로 바꾸지 않고 다른 값을 유지시킬 수 있습니다.
-    loading: (prevState = null) => ({
-        loading: true,
-        data: prevState,
-        error: null
-    }),
-    // 성공 상태
-    success: payload => ({
-        loading: false,
-        data: payload,
-        error: null
-    }),
-    // 실패 상태
-    error: error => ({
-        loading: false,
-        data: null,
-        error: error
-    })
-};
-
-// 비동기 관련 액션들을 처리하는 리듀서를 만들어줍니다.
-// type 은 액션의 타입, key 는 상태의 key (예: posts, post) 입니다.
-export const handleAsyncActions = (type, key) => {
-    const [SUCCESS, ERROR] = [`${type}_SUCCESS`, `${type}_ERROR`];
-    return (state, action) => {
-        switch (action.type) {
-            case type:
-                return {
-                    ...state,
-                    [key]: reducerUtils.loading()
-                };
-            case SUCCESS:
-                return {
-                    ...state,
-                    [key]: reducerUtils.success(action.payload)
-                };
-            case ERROR:
-                return {
-                    ...state,
-                    [key]: reducerUtils.error(action.payload)
-                };
-            default:
-                return state;
-        }
-    };
-};
+export default function posts(state = initialState, action) {
+    switch (action.type) {
+        case GET_POSTS:
+            return {
+                ...state,
+                posts: reducerUtils.loading()
+            };
+        case GET_POSTS_SUCCESS:
+            return {
+                ...state,
+                posts: reducerUtils.success(action.payload) // action.posts -> action.payload 로 변경됐습니다.
+            };
+        case GET_POSTS_ERROR:
+            return {
+                ...state,
+                posts: reducerUtils.error(action.error)
+            };
+        case GET_POST:
+            return {
+                ...state,
+                post: reducerUtils.loading()
+            };
+        case GET_POST_SUCCESS:
+            return {
+                ...state,
+                post: reducerUtils.success(action.payload) // action.post -> action.payload 로 변경됐습니다.
+            };
+        case GET_POST_ERROR:
+            return {
+                ...state,
+                post: reducerUtils.error(action.error)
+            };
+        default:
+            return state;
+    }
+}
