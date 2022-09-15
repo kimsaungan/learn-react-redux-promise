@@ -1,9 +1,5 @@
 import * as postsAPI from '../api/posts'; // api/posts 안의 함수 모두 불러오기
-import {
-    createPromiseThunk,
-    reducerUtils,
-    handleAsyncActions
-} from '../lib/asyncUtils';
+import { createPromiseThunk, reducerUtils } from '../lib/asyncUtils';
 
 /* 액션 타입 */
 
@@ -30,13 +26,35 @@ const initialState = {
 export default function posts(state = initialState, action) {
     switch (action.type) {
         case GET_POSTS:
+            return {
+                ...state,
+                posts: reducerUtils.loading()
+            };
         case GET_POSTS_SUCCESS:
+            return {
+                ...state,
+                posts: reducerUtils.success(action.payload) // action.posts -> action.payload 로 변경됐습니다.
+            };
         case GET_POSTS_ERROR:
-            return handleAsyncActions(GET_POSTS, 'posts')(state, action);
+            return {
+                ...state,
+                posts: reducerUtils.error(action.error)
+            };
         case GET_POST:
+            return {
+                ...state,
+                post: reducerUtils.loading()
+            };
         case GET_POST_SUCCESS:
+            return {
+                ...state,
+                post: reducerUtils.success(action.payload) // action.post -> action.payload 로 변경됐습니다.
+            };
         case GET_POST_ERROR:
-            return handleAsyncActions(GET_POST, 'post')(state, action);
+            return {
+                ...state,
+                post: reducerUtils.error(action.error)
+            };
         default:
             return state;
     }
